@@ -113,6 +113,48 @@ html,body{margin:0;background:var(--ground);color:var(--ink);
 }
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(201,42,42,.45)}100%{box-shadow:0 0 0 12px rgba(201,42,42,0)}}
 
+
+/* Vue liste (téléphone) */
+.m{display:none;max-width:640px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-right)) 48px max(16px,env(safe-area-inset-left))}
+body.list .m{display:block}
+body.list .scroller{display:none}
+body.list #btnToday,body.list #btnFit,body.list #btnReal{display:none}
+.m h1{margin:0;font-size:25px;line-height:1.2;font-weight:800;letter-spacing:-.01em}
+.m .sub{margin:6px 0 0;font-size:15px;color:var(--muted);line-height:1.4}
+.sum{margin-top:18px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
+.sum .k{font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--slate)}
+.sum .big{margin-top:4px;font-size:20px;font-weight:800;line-height:1.25}
+.track{margin-top:12px;height:10px;border-radius:5px;background:var(--slate-light);overflow:hidden}
+.track i{display:block;height:100%;background:var(--slate);border-radius:5px}
+.sum .small{margin-top:10px;font-size:14px;color:var(--muted);line-height:1.45}
+.tl{position:relative;margin-top:22px;padding-left:30px}
+.tl::before{content:"";position:absolute;left:10px;top:6px;bottom:6px;width:2px;background:#C5CCD8}
+.it2{position:relative;margin:0 0 14px}
+.it2::before{content:"";position:absolute;left:-26px;top:20px;width:12px;height:12px;border-radius:50%;
+  background:var(--c,#3D4A63);border:2px solid var(--ground);box-sizing:content-box;margin-left:-2px}
+.it2.blue{--c:var(--blue)} .it2.teal{--c:var(--teal)} .it2.slate{--c:var(--slate)}
+.it2.ms::before{border-radius:0;transform:rotate(45deg)}
+.card{background:#fff;border:1px solid var(--line);border-left:5px solid var(--c);border-radius:14px;padding:14px 16px}
+.it2.past .card{opacity:.62}
+.it2.cur .card{box-shadow:0 2px 14px rgba(18,32,58,.12);border-color:var(--c)}
+.card .top{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+.card .nb{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:12px;background:var(--c);color:#fff;font-size:13px;font-weight:800}
+.card .dt{font-size:14px;font-weight:700;color:var(--muted)}
+.st{margin-left:auto;font-size:12px;font-weight:800;padding:3px 10px;border-radius:12px;background:#EEF1F6;color:var(--slate)}
+.it2.cur .st{background:var(--c);color:#fff}
+.st.ind{margin-left:0;background:transparent;border:1px dashed #8A93A5;color:var(--muted);font-weight:700}
+.card h3{margin:8px 0 0;font-size:18px;line-height:1.3;font-weight:800}
+.card p{margin:6px 0 0;font-size:15px;line-height:1.5;color:#3C465A}
+.here{position:relative;margin:2px 0 16px -30px;padding-left:30px}
+.here .pillm{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 10px;background:var(--now);color:#fff;border-radius:18px;padding:9px 16px;font-size:15px;line-height:1.25}
+.here .pillm b{font-weight:800}
+.here::before{content:"";position:absolute;left:3px;top:50%;width:16px;height:16px;margin-top:-8px;border-radius:50%;background:var(--now);box-shadow:0 0 0 4px var(--ground)}
+@media (prefers-reduced-motion:no-preference){.here::before{animation:pulse 2s ease-out infinite}}
+.m .foot2{margin-top:20px;font-size:13px;font-style:italic;color:var(--muted);line-height:1.45}
+.after{margin-top:6px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.after h3{margin:0;font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--teal)}
+.after ul{margin:8px 0 0;padding-left:18px;font-size:15px;line-height:1.5}
+
 .sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 </style>
 </head>
@@ -122,7 +164,10 @@ html,body{margin:0;background:var(--ground);color:var(--ink);
   <button type="button" id="btnToday" class="primary">Aujourd’hui</button>
   <button type="button" id="btnFit">Vue d’ensemble</button>
   <button type="button" id="btnReal">Taille réelle</button>
+  <button type="button" id="btnView">Voir la frise détaillée</button>
 </div>
+
+<main class="m" id="m" aria-label="Parcours en liste"></main>
 
 <main class="scroller" id="scroller">
   <div class="sizer" id="sizer">
@@ -373,6 +418,110 @@ html,body{margin:0;background:var(--ground);color:var(--ink);
     if (m === 'fit') scroller.scrollLeft = 0;
   }
 
+  /* ======================================================================
+     7. Vue liste (téléphone) : mêmes dates, lecture verticale
+     ====================================================================== */
+  var mEl = document.getElementById('m');
+  function esc(t) { return String(t).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
+  function fShort(iso) { return new Intl.DateTimeFormat('fr-FR', { month: 'short', year: 'numeric' }).format(parse(iso)); }
+  function fCourt(d) { return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }).format(d); }
+
+  var ITEMS = [
+    { c: 'blue', n: 1, s: PLAN.ppl[0], e: PLAN.ppl[1], title: 'PPL (brevet de pilote privé)',
+      range: 'Juil. 2026 → fin 2026',
+      note: 'Objectif fin 2026. Retard de livraison des nouveaux avions à cause des incendies de l’été.' },
+    { c: 'blue', n: 4, s: PLAN.atplEtudes[0], e: PLAN.atplCertificat, title: 'ATPL théorique (13 matières)',
+      range: 'Juil. 2026 → vers juin 2027',
+      note: 'Études en autonomie, puis inscription en ATO après le PPL (début 2027). Le certificat déclenche le retour à l’emploi durable.' },
+    { c: 'blue', n: 3, s: PLAN.jalon3[0], e: PLAN.jalon3[1], ind: 1, title: 'Remorquage + préparation militaire',
+      range: 'Début 2027 → mi-2027',
+      note: 'Calendrier à confirmer : disponibilité du club et campagne de l’armée de l’Air.' },
+    { c: 'blue', s: PLAN.murissement[0], e: PLAN.murissementFlex[1], ind: 1, title: 'Mûrissement',
+      range: 'Début 2027 → début 2028',
+      note: '150 h dont 100 h en commandant de bord, en continu dès le début 2027. La durée dépend de la reprise d’activité (fin du CSP).' },
+    { c: 'teal', n: 2, s: PLAN.cdd[0], e: PLAN.cdd[1], title: 'CDD estival · opérateur au sol',
+      range: 'Juil. → sept. 2027',
+      note: 'Intérêt manifesté par l’entreprise, discussions plus concrètes au 1er trimestre 2027. L’ATPL n’est pas requis pour ce poste.' },
+    { c: 'teal', n: 4, s: PLAN.reprise[0], e: PLAN.reprise[1], ind: 1, title: 'Reprise d’activité',
+      range: 'Oct. 2027 → début 2028',
+      note: 'Durée à définir, c’est le principal paramètre de flexibilité du plan. Flight Dispatcher, pilote Écho Radar ou réserve de l’armée de l’Air, avec réaccumulation de droits chômage.' },
+    { c: 'slate', ms: 1, s: PLAN.finCSP, e: PLAN.finCSP, title: 'Fin du CSP',
+      range: fDay(PLAN.finCSP),
+      note: 'Fin initiale le 2 juillet 2027, décalée de 3 mois grâce au CDD (jalon 2).' },
+    { c: 'blue', n: 5, s: PLAN.cpl[0], e: PLAN.mcc[1], ind: 1, title: 'CPL puis MCC',
+      range: 'Avr. 2028 → août 2028',
+      note: 'CPL ≈ 3 mois, MCC ≈ 6 semaines, avec réutilisation des droits chômage.' }
+  ];
+  ITEMS.sort(function (a, b) { return parse(a.s) - parse(b.s); });
+
+  function renderList() {
+    var now = new Date(), t0 = parse(PLAN.csp[0]), t1 = parse(PLAN.csp[1]);
+    var DAY = 86400000;
+    var total = Math.round((t1 - t0) / DAY), done = Math.floor((now - t0) / DAY) + 1;
+    var pct = Math.max(0, Math.min(100, Math.round(done / total * 100)));
+    var left = Math.max(0, Math.ceil((t1 - now) / DAY));
+    var big = now < t0 ? 'Départ du CSP le ' + fDay(PLAN.csp[0])
+            : now > t1 ? 'CSP terminé'
+            : 'Jour ' + done + ' sur ' + total;
+    var small = now < t0 ? ''
+            : now > t1 ? ''
+            : 'Il reste ' + left + ' jours, jusqu’à ' + fMonth(PLAN.csp[1]) + '. Fin initiale le 2 juillet 2027, décalée de 3 mois grâce au CDD.';
+
+    var html = '<h1>Devenir pilote de ligne</h1>' +
+      '<p class="sub">Plan révisé présenté à France Travail · CSP à partir du ' + esc(fDay(PLAN.csp[0])) + '</p>' +
+      '<section class="sum" aria-label="Avancement du CSP"><div class="k">CSP</div><div class="big">' + esc(big) + '</div>' +
+      '<div class="track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><i style="width:' + pct + '%"></i></div>' +
+      (small ? '<div class="small">' + esc(small) + '</div>' : '') + '</section>' +
+      '<div class="tl">';
+
+    var placed = false;
+    function here() {
+      placed = true;
+      var lab = fCourt(now);
+      if (now < t0) lab += ' · avant le départ du CSP';
+      return '<div class="here"><span class="pillm"><b>Vous êtes ici</b><span>' + esc(lab) + '</span></span></div>';
+    }
+    ITEMS.forEach(function (it) {
+      var s = parse(it.s), e = parse(it.e);
+      if (!placed && s > now) html += here();
+      var past = e < now && !it.ms ? true : (it.ms && s < now);
+      var cur = !it.ms && s <= now && now <= new Date(e.getTime() + DAY);
+      if (cur) past = false;
+      var st = it.ms ? (past ? 'Passé' : 'À venir') : (cur ? 'En cours' : (past ? 'Terminé' : 'À venir'));
+      html += '<div class="it2 ' + it.c + (it.ms ? ' ms' : '') + (past ? ' past' : '') + (cur ? ' cur' : '') + '"><div class="card">' +
+        '<div class="top">' + (it.n ? '<span class="nb" title="Jalon ' + it.n + '">' + it.n + '</span>' : '') +
+        '<span class="dt">' + esc(it.range) + '</span>' +
+        (it.ind ? '<span class="st ind">indicatif</span>' : '') +
+        '<span class="st">' + st + '</span></div>' +
+        '<h3>' + esc(it.title) + '</h3><p>' + esc(it.note) + '</p></div></div>';
+    });
+    if (!placed) html += here();
+    html += '</div>' +
+      '<section class="after"><h3>APRÈS LE JALON 5</h3><ul>' +
+      '<li>Reprise possible de l’activité précédente</li>' +
+      '<li>Possibilité d’être rémunéré pour mes vols</li>' +
+      '<li>Recrutement possible en compagnie ou en aviation d’affaires</li>' +
+      '<li>Nouvelles missions de pilotage à l’armée de l’Air</li></ul></section>' +
+      '<p class="foot2">Les positions après octobre 2027 sont indicatives : la durée de la reprise d’activité (jalon 4) fixe le début du jalon 5.</p>';
+    mEl.innerHTML = html;
+  }
+
+  /* ======================================================================
+     8. Choix de la vue : liste sur téléphone, frise sur grand écran
+     ====================================================================== */
+  var userView = null;
+  var btnView = document.getElementById('btnView');
+  function view() { return userView || (window.matchMedia('(max-width:720px)').matches ? 'list' : 'gantt'); }
+  function applyView() {
+    var v = view();
+    document.body.classList.toggle('list', v === 'list');
+    btnView.textContent = v === 'list' ? 'Voir la frise détaillée' : 'Voir la liste';
+    if (v === 'list') { renderList(); window.scrollTo(0, 0); return; }
+    setNow();
+    if (scroller.clientWidth >= 1000) { setMode('fit'); } else { setMode('real'); jump(false); }
+  }
+  btnView.addEventListener('click', function () { userView = (view() === 'list') ? 'gantt' : 'list'; applyView(); });
+
   document.getElementById('btnToday').addEventListener('click', function () {
     if (mode === 'fit' && fitScale() < 1 && scroller.clientWidth < 1000) setMode('real');
     jump(true);
@@ -380,18 +529,21 @@ html,body{margin:0;background:var(--ground);color:var(--ink);
   document.getElementById('btnFit').addEventListener('click', function () { setMode('fit'); });
   document.getElementById('btnReal').addEventListener('click', function () { setMode('real'); jump(true); });
 
-  var resizeTimer;
+  var resizeTimer, lastView = null;
   window.addEventListener('resize', function () {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(function () { if (mode === 'fit') setScale(fitScale()); }, 120);
+    resizeTimer = setTimeout(function () {
+      if (view() !== lastView) { lastView = view(); applyView(); }
+      else if (view() === 'gantt' && mode === 'fit') setScale(fitScale());
+    }, 120);
   });
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) setNow(); });
-  setInterval(setNow, 60000);
+  function refresh() { setNow(); if (view() === 'list') renderList(); }
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh(); });
+  setInterval(refresh, 60000);
 
-  setNow();
+  lastView = view();
+  applyView();
   if (document.fonts && document.fonts.ready) { document.fonts.ready.then(setNow); }
-  if (scroller.clientWidth >= 1000) { setMode('fit'); }
-  else { setMode('real'); jump(false); }
 })();
 </script>
 </body>

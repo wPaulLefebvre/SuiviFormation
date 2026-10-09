@@ -17,7 +17,7 @@ Par défaut, le site publié est lisible par toute personne qui connaît l'adres
 - **iPhone (Safari)** : bouton Partager → *Sur l'écran d'accueil*.
 - **Android (Chrome)** : menu ⋮ → *Ajouter à l'écran d'accueil*.
 
-Sur un écran étroit, la frise s'ouvre à taille lisible et se centre sur la date du jour. Les boutons du haut permettent de recentrer (*Aujourd'hui*), de tout voir d'un coup (*Vue d'ensemble*) ou de revenir à la taille réelle.
+Sur téléphone, la page s'ouvre en **liste verticale** : un compteur du CSP en haut, puis les étapes dans l'ordre, avec le marqueur « Vous êtes ici » placé entre celles qui sont passées et celles à venir. Le bouton du haut permet de basculer vers la **frise détaillée** (et inversement). Sur grand écran, la frise s'affiche directement ; ses boutons permettent de recentrer (*Aujourd'hui*), de tout voir d'un coup (*Vue d'ensemble*) ou de revenir à la taille réelle.
 
 ## Faire évoluer la frise
 
