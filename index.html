@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F5F7FA">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Parcours pilote">
+<title>Calendrier du parcours pilote</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#12203A; --muted:#5B6577; --line:#DFE4EC; --ground:#F5F7FA;
+  --blue:#2A5BD7; --blue-ink:#1F3F99; --blue-light:#DCE6FB; --blue-dark:#1E43A8;
+  --teal:#0F7B6F; --teal-ink:#0B5F55;
+  --slate:#3D4A63; --slate-light:#D5DBE6;
+  --now:#C92A2A;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',sans-serif;-webkit-text-size-adjust:100%}
+
+/* Barre d'outils (hors de la frise) */
+.toolbar{position:sticky;top:0;left:0;z-index:30;display:flex;flex-wrap:wrap;gap:8px;
+  padding:10px max(14px,env(safe-area-inset-right)) 10px max(14px,env(safe-area-inset-left));
+  background:#fff;border-bottom:1px solid var(--line)}
+.toolbar button{min-height:44px;padding:0 16px;border-radius:22px;border:1px solid #C5CCD8;background:#fff;
+  color:var(--ink);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.toolbar button.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+.toolbar button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+
+/* Zone de défilement + frise à taille fixe mise à l'échelle par JS */
+.scroller{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+.sizer{position:relative}
+.stage{position:absolute;left:0;top:0;width:1680px;height:1060px;transform-origin:0 0;
+  background:var(--ground);overflow:hidden}
+.abs{position:absolute}
+
+/* Titre et légende */
+.title{left:56px;top:44px;width:900px}
+.title h1{margin:0;font-size:34px;font-weight:800;letter-spacing:-.01em;line-height:1.15}
+.title p{margin:8px 0 0;font-size:16px;font-weight:500;color:var(--muted)}
+.legend{position:absolute;left:900px;top:56px;width:724px;display:flex;flex-wrap:wrap;gap:10px 22px;
+  align-items:center;justify-content:flex-end;font-size:13px;font-weight:600}
+.legend .it{display:flex;align-items:center;gap:8px}
+.sw{width:14px;height:14px;border-radius:4px}
+.sw.blue{background:var(--blue)} .sw.teal{background:var(--teal)} .sw.slate{background:var(--slate)}
+.sw.hatch{border:1.5px dashed #5B6577;background:repeating-linear-gradient(135deg,rgba(91,101,119,.3) 0 3px,rgba(91,101,119,.06) 3px 6px)}
+.sw.diamond{width:10px;height:10px;border-radius:0;background:var(--ink);transform:rotate(45deg)}
+
+/* Axe, grille, lignes */
+.ylabel{height:24px;line-height:24px;padding-left:8px;border-left:1px solid #C5CCD8;font-size:13px;font-weight:800}
+.mlabel{height:24px;line-height:24px;text-align:center;font-size:11px;font-weight:600;color:var(--muted)}
+.grid{background-image:repeating-linear-gradient(90deg,#E6EAF1 0,#E6EAF1 1px,transparent 1px,transparent 46px)}
+.yline{width:2px;background:#C5CCD8}
+.sep{height:1px;background:var(--line)}
+.lane-label b{display:block;font-size:14px;font-weight:700;line-height:1.3}
+.lane-label span{display:block;margin-top:2px;font-size:12px;color:var(--muted);line-height:1.4}
+
+/* Barres */
+.bar{display:flex;align-items:center;padding:0 12px;border-radius:8px;font-size:12px;font-weight:700;line-height:1.25}
+.bar.lg{font-size:13px}
+.bar small{font-weight:500;font-size:11px}
+.bar.slate{background:var(--slate);color:#fff;padding:0 14px}
+.bar.slate-light{background:var(--slate-light);color:var(--ink)}
+.bar.hatch-slate{border:1.5px dashed var(--slate);color:var(--slate);
+  background:repeating-linear-gradient(135deg,rgba(61,74,99,.16) 0 6px,rgba(61,74,99,.05) 6px 12px)}
+.bar.blue{background:var(--blue);color:#fff}
+.bar.blue-dark{background:var(--blue-dark);color:#fff}
+.bar.blue-light{background:var(--blue-light);color:var(--blue-ink)}
+.bar.hatch-blue{border:1.5px dashed var(--blue);color:var(--blue-ink);
+  background:repeating-linear-gradient(135deg,rgba(42,91,215,.16) 0 6px,rgba(42,91,215,.05) 6px 12px)}
+.bar.teal{background:var(--teal);color:#fff}
+.bar.hatch-teal{border:1.5px dashed var(--teal);color:var(--teal-ink);
+  background:repeating-linear-gradient(135deg,rgba(15,123,111,.18) 0 6px,rgba(15,123,111,.05) 6px 12px)}
+.badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:11px;
+  font-size:12px;font-weight:800;margin-right:10px;flex:none}
+.badge.on-blue{background:#fff;color:var(--blue)}
+.badge.on-blue-fill{background:var(--blue);color:#fff}
+.badge.on-teal{background:#fff;color:var(--teal)}
+.badge.on-teal-fill{background:var(--teal);color:#fff}
+.two{line-height:1.25}
+
+/* Annotations */
+.note{font-size:12px;color:var(--muted);line-height:1.4}
+.note.sm{font-size:11.5px;line-height:1.35}
+.note.right{text-align:right}
+.chip{height:24px;border-radius:12px;background:#fff;border:1px solid #A9D3CC;color:var(--teal-ink);
+  padding:0 12px;font-size:12px;font-weight:600;line-height:22px}
+.diamond{width:18px;height:18px;background:var(--ink);border:2px solid var(--ground);transform:rotate(45deg)}
+.csp-end{width:0;border-left:1.5px dashed rgba(61,74,99,.7)}
+.csp-tag{font-size:11.5px;font-weight:700;color:var(--slate)}
+.issues{left:320px;top:906px;width:1242px;height:104px;border-radius:14px;background:#fff;border:1px solid var(--line);padding:14px 20px}
+.issues h2{margin:0;font-size:12px;font-weight:800;letter-spacing:.05em;color:var(--teal)}
+.issues .row{display:flex;margin-top:12px;font-size:13px;font-weight:600;line-height:1.4}
+.issues .row div{flex:1;padding:0 16px;border-left:1px solid var(--line)}
+.issues .row div:first-child{padding-left:0;border-left:none}
+.issues .row div:last-child{padding-right:0}
+.foot{left:56px;top:1024px;width:1568px;font-size:12px;font-style:italic;color:var(--muted);line-height:1.4}
+
+/* Marqueur « Vous êtes ici » */
+.now{position:absolute;top:122px;left:0;width:0;height:764px;z-index:20;pointer-events:none}
+.now-line{position:absolute;left:-1px;top:30px;width:2px;height:734px;background:var(--now);box-shadow:0 0 0 1px rgba(255,255,255,.8)}
+.now-line::after{content:"";position:absolute;left:-4px;bottom:-5px;width:10px;height:10px;border-radius:50%;background:var(--now)}
+.now-pill{position:absolute;top:0;left:0;white-space:nowrap;display:flex;align-items:center;gap:8px;
+  background:var(--now);color:#fff;border-radius:15px;padding:6px 14px;font-size:12px;line-height:1.2}
+.now-pill b{font-weight:800}
+.now-pill span{font-weight:500}
+.now-dot{width:8px;height:8px;border-radius:50%;background:#fff;flex:none}
+@media (prefers-reduced-motion:no-preference){
+  .now-line::after{animation:pulse 2s ease-out infinite}
+}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(201,42,42,.45)}100%{box-shadow:0 0 0 12px rgba(201,42,42,0)}}
+
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+</style>
+</head>
+<body>
+
+<div class="toolbar" role="toolbar" aria-label="Affichage de la frise">
+  <button type="button" id="btnToday" class="primary">Aujourd’hui</button>
+  <button type="button" id="btnFit">Vue d’ensemble</button>
+  <button type="button" id="btnReal">Taille réelle</button>
+</div>
+
+<main class="scroller" id="scroller">
+  <div class="sizer" id="sizer">
+    <div class="stage" id="stage" role="img" aria-label="Frise chronologique du parcours, de juillet 2026 à fin 2028. Un résumé en texte suit la frise.">
+
+      <div class="abs title">
+        <h1>Devenir pilote de ligne : calendrier du parcours</h1>
+        <p>Plan révisé présenté à France Travail · CSP à partir du 4 juillet 2026</p>
+      </div>
+
+      <div class="legend">
+        <div class="it"><div class="sw blue"></div>Formation</div>
+        <div class="it"><div class="sw teal"></div>Emploi</div>
+        <div class="it"><div class="sw slate"></div>Droits France Travail</div>
+        <div class="it"><div class="sw hatch"></div>Durée ou date à définir</div>
+        <div class="it"><div class="sw diamond"></div>Jalon clé</div>
+      </div>
+
+      <div class="abs grid" style="left:320px;top:226px;width:1242px;height:660px"></div>
+
+      <div class="abs issues">
+        <h2>APRÈS LE JALON 5</h2>
+        <div class="row">
+          <div>Reprise possible de l’activité précédente</div>
+          <div>Possibilité d’être rémunéré pour mes vols</div>
+          <div>Recrutement possible en compagnie ou en aviation d’affaires</div>
+          <div>Nouvelles missions de pilotage à l’armée de l’Air</div>
+        </div>
+      </div>
+
+      <div class="abs foot">Les positions après octobre 2027 sont indicatives : la durée de la reprise d’activité (jalon 4) fixe le début du jalon 5. Durées du CPL (≈ 3 mois) et du MCC (≈ 6 semaines) d’après le plan communiqué.</div>
+
+      <!-- Le reste (axe, lignes, barres, marqueur) est généré par le script ci-dessous -->
+      <div class="now" id="now" aria-hidden="true">
+        <div class="now-pill" id="nowPill"><span class="now-dot" style="font-weight:400"></span><b>Vous êtes ici</b><span id="nowDate"></span></div>
+        <div class="now-line"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<section class="sr-only" aria-label="Résumé de la frise en texte">
+  <h2>Résumé du parcours</h2>
+  <ul>
+    <li>CSP du 4 juillet 2026 à octobre 2027 environ (fin décalée de 3 mois grâce au CDD).</li>
+    <li>Jalon 1 : PPL visé fin 2026.</li>
+    <li>Jalon 4 : ATPL en parallèle, certificat visé vers juin 2027.</li>
+    <li>Jalon 3 : formation pilote remorqueur, début du mûrissement et préparation militaire, début 2027, calendrier à confirmer.</li>
+    <li>Jalon 2 : CDD estival d’opérateur au sol, de juillet à septembre 2027.</li>
+    <li>Jalon 4 : reprise d’activité à la fin du CSP (Flight Dispatcher, pilote Écho Radar, réserve de l’armée de l’Air), durée à définir, avec réaccumulation de droits chômage.</li>
+    <li>Jalon 5 : CPL d’environ 3 mois puis MCC d’environ 6 semaines, avec réutilisation des droits chômage.</li>
+  </ul>
+</section>
+
+<noscript><p style="padding:16px">Cette page demande JavaScript pour afficher la frise.</p></noscript>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ======================================================================
+     1. PLAN : les seules valeurs à modifier pour faire évoluer la frise.
+        Format AAAA-MM-JJ. Les barres se placent toutes seules.
+     ====================================================================== */
+  var PLAN = {
+    csp:              ['2026-07-04', '2027-10-02'],  // fin initiale 2 juillet 2027, décalée de 3 mois
+    ppl:              ['2026-07-04', '2026-12-31'],  // objectif : fin 2026
+    atplEtudes:       ['2026-07-04', '2027-01-01'],  // études en autonomie
+    atplATO:          ['2027-01-01', '2027-06-15'],  // inscription en ATO après le PPL
+    atplCertificat:   '2027-06-15',                  // certificat visé vers juin 2027
+    jalon3:           ['2027-01-01', '2027-07-01'],  // INDICATIF : à confirmer (club, campagne armée de l'Air)
+    murissement:      ['2027-01-01', '2027-10-01'],  // INDICATIF
+    murissementFlex:  ['2027-10-01', '2028-04-01'],  // INDICATIF : jusqu'à 150 h dont 100 h CDB
+    cdd:              ['2027-07-01', '2027-10-01'],  // CDD estival, 3 mois
+    reprise:          ['2027-10-01', '2028-04-01'],  // INDICATIF : durée à définir
+    droitsRecharges:  ['2027-10-02', '2028-04-01'],  // INDICATIF
+    droitsReutilises: ['2028-04-01', '2028-08-16'],  // INDICATIF
+    cpl:              ['2028-04-01', '2028-07-01'],  // INDICATIF : ≈ 3 mois
+    mcc:              ['2028-07-01', '2028-08-16'],  // INDICATIF : ≈ 6 semaines
+    finCSP:           '2027-10-02'
+  };
+
+  /* ======================================================================
+     2. Géométrie : 1 mois = 46 px, la frise commence au 1er juillet 2026
+     ====================================================================== */
+  var X0 = 320, MW = 46, MONTHS = 27, BOTTOM = 886, W = 1680, H = 1060;
+  var stage = document.getElementById('stage');
+
+  function dim(y, m) { return new Date(y, m, 0).getDate(); }            // m = 1..12
+  function mi(iso) {                                                      // index de mois fractionnaire
+    var p = iso.split('-').map(Number);
+    return (p[0] - 2026) * 12 + (p[1] - 7) + (p[2] - 1) / dim(p[0], p[1]);
+  }
+  function X(iso) { return X0 + MW * mi(iso); }
+  function px(n) { return (Math.round(n * 10) / 10) + 'px'; }
+  function parse(iso) { var p = iso.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); }
+  function fDay(iso) { return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }).format(parse(iso)); }
+  function fMonth(iso) { return new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(parse(iso)); }
+
+  var nowEl = document.getElementById('now');
+  function add(cls, style, html) {
+    var e = document.createElement('div');
+    e.className = 'abs ' + cls;
+    e.style.cssText = style;
+    if (html != null) e.innerHTML = html;
+    stage.insertBefore(e, nowEl);        // le marqueur reste toujours au-dessus
+    return e;
+  }
+  function bar(top, h, range, cls, inner, extra) {
+    var l = X(range[0]), w = X(range[1]) - l;
+    return add('bar ' + cls, 'left:' + px(l) + ';top:' + top + 'px;width:' + px(w) + ';height:' + h + 'px;' + (extra || ''), inner);
+  }
+  function badge(n, cls) { return '<span class="badge ' + cls + '">' + n + '</span>'; }
+
+  /* ======================================================================
+     3. Axe du temps (années + mois), séparateurs et libellés de lignes
+     ====================================================================== */
+  var MN = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+  var i, start = 0;
+  for (i = 0; i < MONTHS; i++) {
+    add('mlabel', 'left:' + (X0 + i * MW) + 'px;top:198px;width:' + MW + 'px', MN[(6 + i) % 12]);
+    var newYear = ((6 + i) % 12 === 0);
+    if (newYear) {
+      add('yline', 'left:' + (X0 + i * MW) + 'px;top:170px;height:716px');
+    }
+    if (i === 0 || newYear) { start = i; }
+    var last = (i === MONTHS - 1) || ((6 + i + 1) % 12 === 0);
+    if (last) {
+      add('ylabel', 'left:' + (X0 + start * MW) + 'px;top:170px;width:' + ((i - start + 1) * MW) + 'px',
+          String(2026 + Math.floor((6 + start) / 12)));
+    }
+  }
+
+  var LANES = [
+    { t: 226, title: 'Statut', sub: 'CSP puis droits chômage' },
+    { t: 310, title: 'Jalon 1 · PPL', sub: 'Brevet de pilote privé' },
+    { t: 394, title: 'Jalon 4 · en parallèle', sub: 'ATPL, 13 matières' },
+    { t: 494, title: 'Jalon 3', sub: 'Remorquage, mûrissement, préparation militaire' },
+    { t: 594, title: 'Mûrissement', sub: 'Heures de vol avant le CPL' },
+    { t: 678, title: 'Jalons 2 et 4 · emploi', sub: 'CDD estival, puis reprise d’activité à la fin du CSP' },
+    { t: 802, title: 'Jalon 5 · CPL + MCC', sub: 'Fin de la formation pilote de ligne' }
+  ];
+  LANES.forEach(function (ln) {
+    add('sep', 'left:56px;top:' + ln.t + 'px;width:1568px');
+    add('lane-label', 'left:56px;top:' + (ln.t + 16) + 'px;width:244px', '<b>' + ln.title + '</b><span>' + ln.sub + '</span>');
+  });
+  add('sep', 'left:56px;top:' + BOTTOM + 'px;width:1568px');
+
+  /* ======================================================================
+     4. Barres et annotations, lues dans PLAN
+     ====================================================================== */
+  // Ligne A : statut France Travail
+  bar(242, 40, PLAN.csp, 'slate lg', 'CSP · du ' + fDay(PLAN.csp[0]) + ' à ' + fMonth(PLAN.csp[1]));
+  add('note sm', 'left:' + px(X(PLAN.csp[0])) + ';top:286px;width:686px', 'Fin initiale le 2 juillet 2027, décalée de 3 mois grâce au CDD (jalon 2)');
+  bar(242, 40, PLAN.droitsRecharges, 'hatch-slate', 'Droits chômage réaccumulés');
+  bar(242, 40, PLAN.droitsReutilises, 'slate-light', 'Réutilisation des droits');
+
+  // Ligne B : PPL
+  bar(326, 40, PLAN.ppl, 'blue lg', badge(1, 'on-blue') + 'PPL · objectif fin 2026', 'padding:0 10px');
+  add('note', 'left:' + px(X(PLAN.ppl[1]) + 14) + ';top:336px;width:520px', 'Retard de livraison des nouveaux avions à cause des incendies de l’été');
+
+  // Ligne C : ATPL
+  bar(410, 40, PLAN.atplEtudes, 'blue-light', badge(4, 'on-blue-fill') + 'Études en cours', 'border-radius:8px 0 0 8px;padding:0 10px');
+  bar(410, 40, PLAN.atplATO, 'blue', 'Inscription en ATO (après le PPL)', 'border-radius:0 8px 8px 0;padding:0 14px');
+  add('diamond', 'left:' + px(X(PLAN.atplCertificat) - 9) + ';top:421px');
+  add('', 'left:' + px(X(PLAN.atplCertificat) + 23) + ';top:412px;width:400px',
+      '<div style="font-size:13px;font-weight:700;line-height:1.3">Certificat ATPL · vers juin 2027</div>' +
+      '<div class="note sm" style="margin-top:2px">Déclenche le retour à l’emploi durable</div>');
+  add('note sm', 'left:' + px(X(PLAN.csp[0])) + ';top:456px;width:520px', 'Inscription officielle en ATO possible uniquement après l’obtention du PPL');
+
+  // Ligne D : jalon 3
+  bar(510, 44, PLAN.jalon3, 'hatch-blue', badge(3, 'on-blue-fill') + '<span class="two">Formation remorqueur<br>+ préparation militaire</span>', 'padding:0 10px');
+  add('note sm', 'left:' + px(X(PLAN.jalon3[0])) + ';top:560px;width:440px', 'Calendrier à confirmer : disponibilité du club et campagne de l’armée de l’Air');
+
+  // Ligne E : mûrissement
+  bar(610, 40, PLAN.murissement, 'blue-light', 'Mûrissement en continu, dès le début 2027', 'border-radius:8px 0 0 8px;padding:0 14px');
+  bar(610, 40, PLAN.murissementFlex, 'hatch-blue', '150 h dont 100 h en commandant de bord', 'border-radius:0 8px 8px 0;border-left:none');
+  add('note sm', 'left:' + px(X(PLAN.murissementFlex[0])) + ';top:654px;width:420px', 'Durée liée à la reprise d’activité du jalon 4 (fin du CSP)');
+
+  // Ligne F : emploi
+  add('note right', 'left:' + px(X(PLAN.cdd[0]) - 17 - 530) + ';top:696px;width:530px;line-height:1.45',
+      'Intérêt manifesté par l’entreprise · discussions plus concrètes au 1er trimestre 2027<br>Plans B à l’étude · l’ATPL n’est pas requis pour ce poste');
+  bar(694, 44, PLAN.cdd, 'teal', badge(2, 'on-teal') + '<span class="two">CDD estival<br><small>Opérateur au sol</small></span>', 'padding:0 8px');
+  add('note sm', 'left:' + px(X(PLAN.cdd[0])) + ';top:742px;width:' + px(X(PLAN.cdd[1]) - X(PLAN.cdd[0])), 'juil. – sept. 2027');
+  bar(694, 44, PLAN.reprise, 'hatch-teal lg', badge(4, 'on-teal-fill') + '<span class="two">Reprise d’activité<br><small>durée à définir</small></span>', 'padding:0 10px');
+  add('note sm', 'left:' + px(X(PLAN.reprise[0])) + ';top:742px;width:280px;line-height:1.4',
+      'Réaccumulation de droits chômage<br>La durée est le principal paramètre de flexibilité du plan');
+  var chipLeft = X(PLAN.reprise[1]) + 20, chipW = Math.max(200, X0 + MONTHS * MW - chipLeft);
+  ['Flight Dispatcher', 'Pilote Écho Radar', 'Réserve de l’armée de l’Air'].forEach(function (t, k) {
+    add('chip', 'left:' + px(chipLeft) + ';top:' + (694 + 30 * k) + 'px;width:' + px(chipW), t);
+  });
+
+  // Ligne G : CPL + MCC
+  add('note right', 'left:325px;top:822px;width:' + px(X(PLAN.cpl[0]) - 14 - 325), 'Début du CPL dès que le mûrissement (150 h) et la reprise d’activité le permettent');
+  bar(818, 40, PLAN.cpl, 'blue', badge(5, 'on-blue') + '<span class="two">CPL<br><small>≈ 3 mois</small></span>', 'border-radius:8px 0 0 8px;padding:0 8px');
+  bar(818, 40, PLAN.mcc, 'blue-dark', '<span class="two">MCC<br><small>≈ 6 sem.</small></span>', 'border-radius:0 8px 8px 0;padding:0 8px');
+
+  // Fin du CSP
+  add('csp-end', 'left:' + px(X(PLAN.finCSP)) + ';top:226px;height:660px');
+  add('csp-tag', 'left:' + px(X(PLAN.finCSP) + 9) + ';top:864px', 'Fin du CSP · vers octobre 2027');
+
+  /* ======================================================================
+     5. « Vous êtes ici » : suit la date réelle de l'appareil
+     ====================================================================== */
+  var pill = document.getElementById('nowPill');
+  var nowDate = document.getElementById('nowDate');
+  var currentX = X0;
+
+  function nowIndex() {
+    var d = new Date(), y = d.getFullYear(), m = d.getMonth() + 1;
+    return (y - 2026) * 12 + (m - 7) + (d.getDate() - 1 + d.getHours() / 24) / dim(y, m);
+  }
+  function setNow() {
+    var raw = nowIndex(), lo = mi(PLAN.csp[0]), hi = MONTHS;
+    var idx = Math.min(hi, Math.max(lo, raw));
+    currentX = X0 + MW * idx;
+    nowEl.style.left = px(currentX);
+    var label = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date());
+    if (raw < lo) label += ' · départ du CSP le ' + fDay(PLAN.csp[0]);
+    else if (raw > hi) label += ' · au-delà de la frise';
+    nowDate.textContent = label;
+    var w = pill.offsetWidth;
+    var left = Math.min(W - 8 - w, Math.max(8, currentX - w / 2));
+    pill.style.left = px(left - currentX);
+  }
+
+  /* ======================================================================
+     6. Échelle, défilement et boutons
+     ====================================================================== */
+  var scroller = document.getElementById('scroller');
+  var sizer = document.getElementById('sizer');
+  var scale = 1, mode = 'fit';
+
+  function setScale(s) {
+    scale = s;
+    stage.style.transform = 'scale(' + s + ')';
+    sizer.style.width = (W * s) + 'px';
+    sizer.style.height = (H * s) + 'px';
+  }
+  function fitScale() { return Math.min(1, scroller.clientWidth / W); }
+  function jump(smooth) {
+    var left = Math.max(0, currentX * scale - scroller.clientWidth / 2);
+    scroller.scrollTo({ left: left, behavior: smooth ? 'smooth' : 'auto' });
+  }
+  function setMode(m) {
+    mode = m;
+    setScale(m === 'fit' ? fitScale() : 1);
+    if (m === 'fit') scroller.scrollLeft = 0;
+  }
+
+  document.getElementById('btnToday').addEventListener('click', function () {
+    if (mode === 'fit' && fitScale() < 1 && scroller.clientWidth < 1000) setMode('real');
+    jump(true);
+  });
+  document.getElementById('btnFit').addEventListener('click', function () { setMode('fit'); });
+  document.getElementById('btnReal').addEventListener('click', function () { setMode('real'); jump(true); });
+
+  var resizeTimer;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () { if (mode === 'fit') setScale(fitScale()); }, 120);
+  });
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) setNow(); });
+  setInterval(setNow, 60000);
+
+  setNow();
+  if (document.fonts && document.fonts.ready) { document.fonts.ready.then(setNow); }
+  if (scroller.clientWidth >= 1000) { setMode('fit'); }
+  else { setMode('real'); jump(false); }
+})();
+</script>
+</body>
+</html>
